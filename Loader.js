@@ -1,46 +1,62 @@
 function Loader() {
     var resourceCache = {};
     var callbacks = [];
-    var numOfImages = 0;
-    var imagesLoaded = 0;
     
-    this.loadResourses = function(listOfImages) {
-        numOfImages += listOfImages.length;
-        for (imagePath in listOfImages) {
-            load(imagePath);
+    this.loadResources = function(listOfResources) {
+        for (var i = 0; i < listOfResources.length; i++) {
+            load(listOfResources[i]);
         }
     }
-    this.onReady(newCallback) {
+    this.onReady = function(newCallback) {
         callbacks.push(newCallback);
     }
-    this.get(url) {
+    this.clearCallbacks = function() {
+        callbacks = [];
+    }
+    this.get = function(url) {
         return resourceCache[url];
     }
-    this.isReady() {
-        return (imagesLoaded == numOfImages);
+    //
+    this.dump = function() {
+        console.log(resourceCache);
     }
-    
-    function load(url, numOfImages) {
-        if (resourceCache[url]) {
-            return resourceCahche[url];
+    //
+    function load(resourceOptions) {
+        if (resourceCache[resourceOptions.path]) {
+            return resourceCahche[resourceOptions.path];
         }
-        
-        var image = new Image();
-        var imagesLoaded = 0;
-        image.onload = function() {
-            resourceCache[url] = image;
-            imagesLoaded++;
+        switch (resourceOptions.type) {
+            case TYPE_SCRIPT:
+                var resourceObject = document.createElement('script');
+            break;
+            case TYPE_IMAGE:
+                var resourceObject = new Image();
+            break;
+            default:
+                throw 'Unknown resource type in Loader.load()';
+            break;
+        }
+        resourceObject.onload = function() {
+            resourceCache[resourceOptions.path] = resourceObject;
             
-            if (imagesLoaded == numOfImages) {
-                while (!callbacks.isEmpty()) {
-                    var callback = callbacks.pop();
-                    callback();
-                }
-            } else if (imagesLoaded > numOfImages) {
-                throw new Exception('Function Loader.load() failed us');
+            if (isReady()) {
+                callbacks.forEach(function(func) { func(); });
             }
         }
-        resourceCahche[url] = false;
-        image.src = url;
+        resourceCache[resourceOptions.path] = false;
+        resourceObject.src = resourceOptions.path;
+        if (resourceOptions.type == TYPE_SCRIPT) {
+            document.head.appendChild(resourceObject);
+        }
+    }
+    function isReady() {
+        var ready = true;
+        for(var url in resourceCache) {
+            if(resourceCache.hasOwnProperty(url) &&
+               !resourceCache[url]) {
+                ready = false;
+            }
+        }
+        return ready;
     }
 }
